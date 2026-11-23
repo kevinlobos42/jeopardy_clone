@@ -7,6 +7,10 @@ export type RoomState = {
     teams: Record<string, Team>
 }
 
+export type ConnectionData = {
+    personId: string
+}
+
 export type Person = {
     id: string
     key: string

@@ -1,6 +1,6 @@
 import { routePartykitRequest, Server } from "partyserver";
 import type { Connection, WSMessage } from "partyserver";
-import { emptyRoomState, type RoomState } from "./roomState.ts";
+import { emptyRoomState, type RoomState, type ConnectionData, type Person } from "./roomState.ts";
 
 /**
  * SMOKE TEST VERSION of the room server.
@@ -26,7 +26,7 @@ export class Room extends Server<Env> {
     this.broadcast(`Someone joined. ${count} connected.`, [connection.id]);
   }
 
-  onMessage(connection: Connection, message: WSMessage) {
+  onMessage(connection: Connection<ConnectionData>, message: WSMessage) {
     // Relay the message to everyone except the sender.
     this.broadcast(`${connection.id.slice(0, 4)}: ${String(message)}`, [connection.id]);
   }
@@ -42,6 +42,11 @@ export class Room extends Server<Env> {
 
   async save(): Promise<void>{
     await this.ctx.storage.put(STATE_KEY, this.state)
+  }
+
+  whoIs(connection: Connection<ConnectionData>): Person | null {
+    const people = this.state.people
+    return people[connection.state?.personId ?? ""] ?? null
   }
 }
 
