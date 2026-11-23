@@ -1,0 +1,338 @@
+diff --git a/package.json b/package.json
+index 1150ab8..ec232f9 100644
+--- a/package.json
++++ b/package.json
+@@ -1,5 +1,5 @@
+ {
+-  "name": "tmp",
++  "name": "jeopardy-clone",
+   "private": true,
+   "version": "0.0.0",
+   "type": "module",
+diff --git a/src/App.tsx b/src/App.tsx
+index 229efb4..8b96cf3 100644
+--- a/src/App.tsx
++++ b/src/App.tsx
+@@ -1,148 +1,7 @@
+-import { useState } from 'react'
+-import reactLogo from './assets/react.svg'
+-import viteLogo from './assets/vite.svg'
+-import cloudflareLogo from './assets/cloudflare.svg'
+-import heroImg from './assets/hero.png'
+-import './App.css'
++import SmokeTest from "./SmokeTest";
+ 
+ function App() {
+-  const [count, setCount] = useState(0)
+-  const [name, setName] = useState('unknown')
+-
+-  return (
+-    <>
+-      <section id="center">
+-        <div className="hero">
+-          <img src={heroImg} className="base" width="170" height="179" alt="" />
+-          <img src={reactLogo} className="framework" alt="React logo" />
+-          <img src={viteLogo} className="vite" alt="Vite logo" />
+-        </div>
+-        <div>
+-          <h1>Get started with Cloudflare</h1>
+-          <p>
+-            Edit <code>src/App.tsx</code> or <code>worker/index.ts</code> and save to test <code>HMR</code>
+-          </p>
+-        </div>
+-        <ul style={{ display: 'flex', gap: '1rem', listStyle: 'none', padding: 0 }}>
+-          <li>
+-            <button
+-              className="counter"
+-              onClick={() => setCount((count) => count + 1)}
+-            >
+-              Count is {count}
+-            </button>
+-          </li>
+-          <li>
+-          <button
+-            className="counter"
+-            onClick={() => {
+-              fetch('/api/')
+-                .then((res) => res.json())
+-                .then((data) => setName(data.name))
+-            }}
+-            aria-label='get name'
+-          >
+-            Name from API is: {name}
+-          </button>
+-          </li>
+-        </ul>
+-
+-
+-      </section>
+-
+-      <div className="ticks"></div>
+-
+-      <section id="next-steps">
+-        <div id="docs">
+-          <svg className="icon" role="presentation" aria-hidden="true">
+-            <use href="/icons.svg#documentation-icon"></use>
+-          </svg>
+-          <h2>Documentation</h2>
+-          <p>Your questions, answered</p>
+-          <ul>
+-            <li>
+-              <a href="https://vite.dev/" target="_blank">
+-                <img className="logo" src={viteLogo} alt="" />
+-                Explore Vite
+-              </a>
+-            </li>
+-            <li>
+-              <a href="https://react.dev/" target="_blank">
+-                <img className="button-icon" src={reactLogo} alt="" />
+-                Learn more
+-              </a>
+-            </li>
+-            <li>
+-              <a href="https://workers.cloudflare.com/" target="_blank">
+-                <img className="button-icon" src={cloudflareLogo} alt="" />
+-                Workers Docs
+-              </a>
+-            </li>
+-          </ul>
+-        </div>
+-        <div id="social">
+-          <svg className="icon" role="presentation" aria-hidden="true">
+-            <use href="/icons.svg#social-icon"></use>
+-          </svg>
+-          <h2>Connect with us</h2>
+-          <p>Join the Vite community</p>
+-          <ul>
+-            <li>
+-              <a href="https://github.com/vitejs/vite" target="_blank">
+-                <svg
+-                  className="button-icon"
+-                  role="presentation"
+-                  aria-hidden="true"
+-                >
+-                  <use href="/icons.svg#github-icon"></use>
+-                </svg>
+-                GitHub
+-              </a>
+-            </li>
+-            <li>
+-              <a href="https://chat.vite.dev/" target="_blank">
+-                <svg
+-                  className="button-icon"
+-                  role="presentation"
+-                  aria-hidden="true"
+-                >
+-                  <use href="/icons.svg#discord-icon"></use>
+-                </svg>
+-                Discord
+-              </a>
+-            </li>
+-            <li>
+-              <a href="https://x.com/vite_js" target="_blank">
+-                <svg
+-                  className="button-icon"
+-                  role="presentation"
+-                  aria-hidden="true"
+-                >
+-                  <use href="/icons.svg#x-icon"></use>
+-                </svg>
+-                X.com
+-              </a>
+-            </li>
+-            <li>
+-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
+-                <svg
+-                  className="button-icon"
+-                  role="presentation"
+-                  aria-hidden="true"
+-                >
+-                  <use href="/icons.svg#bluesky-icon"></use>
+-                </svg>
+-                Bluesky
+-              </a>
+-            </li>
+-          </ul>
+-        </div>
+-      </section>
+-
+-      <div className="ticks"></div>
+-      <section id="spacer"></section>
+-    </>
+-  )
++  return <SmokeTest />;
+ }
+ 
+-export default App
++export default App;
+diff --git a/src/SmokeTest.tsx b/src/SmokeTest.tsx
+new file mode 100644
+index 0000000..e289029
+--- /dev/null
++++ b/src/SmokeTest.tsx
+@@ -0,0 +1,61 @@
++import { useState } from "react";
++import usePartySocket from "partysocket/react";
++
++/**
++ * SMOKE TEST page. Open it in two tabs and on your phone: anything you
++ * send should appear on the others. Delete this once the lobby exists.
++ */
++export default function SmokeTest() {
++  const [log, setLog] = useState<string[]>([]);
++  const [text, setText] = useState("");
++
++  const socket = usePartySocket({
++    party: "room", // the kebab-case form of the "Room" binding in wrangler.jsonc
++    room: "TEST", // the room code
++    onMessage(event) {
++      setLog((prev) => [...prev, String(event.data)]);
++    },
++  });
++
++  function send() {
++    if (!text.trim()) return;
++    socket.send(text);
++    setLog((prev) => [...prev, `me: ${text}`]);
++    setText("");
++  }
++
++  return (
++    <main className="mx-auto flex min-h-screen max-w-md flex-col gap-4 bg-slate-950 p-6 text-slate-100">
++      <h1 className="text-2xl font-bold">Smoke test · room TEST</h1>
++
++      <ul className="flex flex-1 flex-col gap-2 rounded-xl bg-slate-900 p-4 text-sm">
++        {log.length === 0 && <li className="text-slate-400">Waiting for messages…</li>}
++        {log.map((line, i) => (
++          <li key={i}>{line}</li>
++        ))}
++      </ul>
++
++      <form
++        className="flex gap-2"
++        onSubmit={(e) => {
++          e.preventDefault();
++          send();
++        }}
++      >
++        <label htmlFor="msg" className="sr-only">
++          Message
++        </label>
++        <input
++          id="msg"
++          value={text}
++          onChange={(e) => setText(e.target.value)}
++          placeholder="Say something"
++          className="h-12 flex-1 rounded-lg border border-slate-700 bg-slate-900 px-3"
++        />
++        <button type="submit" className="h-12 rounded-lg bg-amber-400 px-5 font-bold text-slate-950">
++          Send
++        </button>
++      </form>
++    </main>
++  );
++}
+diff --git a/src/index.css b/src/index.css
+index 4a5c8e5..f1d8c73 100644
+--- a/src/index.css
++++ b/src/index.css
+@@ -1 +1 @@
+-@import "tailwindcss"
+\ No newline at end of file
++@import "tailwindcss";
+diff --git a/worker/index.ts b/worker/index.ts
+index 67cc722..417ff42 100644
+--- a/worker/index.ts
++++ b/worker/index.ts
+@@ -1,12 +1,50 @@
++import { routePartykitRequest, Server } from "partyserver";
++import type { Connection, WSMessage } from "partyserver";
++
++/**
++ * SMOKE TEST VERSION of the room server.
++ *
++ * One instance of this class exists per room code. Right now it only
++ * relays chat messages so you can check that tabs and phones can talk
++ * to each other. The real lobby and game logic replaces this later.
++ */
++export class Room extends Server<Env> {
++  // Hibernation lets Cloudflare unload an idle room from memory without
++  // dropping its connections, so idle rooms don't use free-plan time.
++  static options = { hibernate: true };
++
++  onConnect(connection: Connection) {
++    // Tell the newcomer how many people are here, and tell everyone else
++    // that someone joined.
++    const count = [...this.getConnections()].length;
++    connection.send(`You joined room ${this.name}. ${count} connected.`);
++    this.broadcast(`Someone joined. ${count} connected.`, [connection.id]);
++  }
++
++  onMessage(connection: Connection, message: WSMessage) {
++    // Relay the message to everyone except the sender.
++    this.broadcast(`${connection.id.slice(0, 4)}: ${String(message)}`, [connection.id]);
++  }
++
++  onClose() {
++    const count = [...this.getConnections()].length;
++    this.broadcast(`Someone left. ${count} connected.`);
++  }
++}
++
+ export default {
+-  fetch(request) {
++  async fetch(request, env) {
++    // WebSocket connections to /parties/room/<CODE> go to that room's Room.
++    const partyResponse = await routePartykitRequest(request, env);
++    if (partyResponse) return partyResponse;
++
+     const url = new URL(request.url);
+ 
++    // Plain HTTP endpoints live under /api/ (the "create room" request goes here later).
+     if (url.pathname.startsWith("/api/")) {
+-      return Response.json({
+-        name: "Cloudflare",
+-      });
++      return Response.json({ ok: true });
+     }
+-		return new Response(null, { status: 404 });
++
++    return new Response(null, { status: 404 });
+   },
+ } satisfies ExportedHandler<Env>;
+diff --git a/wrangler.jsonc b/wrangler.jsonc
+index da16469..2020bb4 100644
+--- a/wrangler.jsonc
++++ b/wrangler.jsonc
+@@ -4,7 +4,7 @@
+  */
+ {
+ 	"$schema": "node_modules/wrangler/config-schema.json",
+-	"name": "tmp",
++	"name": "jeopardy-clone",
+ 	"main": "worker/index.ts",
+ 	"compatibility_date": "2026-11-19",
+ 	"assets": {
+@@ -13,7 +13,21 @@
+ 	"observability": {
+ 		"enabled": true
+ 	},
+-	"upload_source_maps": true
++	"upload_source_maps": true,
++
++  /**
++   * Game rooms: one Durable Object ("Room") per room code.
++   * name = how the Worker refers to it (env.Room); class_name = the class exported from worker/index.ts.
++   */
++  "durable_objects": {
++    "bindings": [{ "name": "Room", "class_name": "Room" }]
++  },
++
++  /**
++   * Migrations: add a new entry (new tag) whenever you add or rename a Durable Object class.
++   * Never edit old entries. The free plan requires SQLite-backed classes.
++   */
++  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }]
+ 	/**
+ 	 * Smart Placement
+ 	 * https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement

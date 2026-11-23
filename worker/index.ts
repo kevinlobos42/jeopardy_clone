@@ -1,5 +1,6 @@
 import { routePartykitRequest, Server } from "partyserver";
 import type { Connection, WSMessage } from "partyserver";
+import { emptyRoomState, type RoomState } from "./roomState.ts";
 
 /**
  * SMOKE TEST VERSION of the room server.
@@ -8,10 +9,14 @@ import type { Connection, WSMessage } from "partyserver";
  * relays chat messages so you can check that tabs and phones can talk
  * to each other. The real lobby and game logic replaces this later.
  */
+
+const STATE_KEY = "state"
+
 export class Room extends Server<Env> {
   // Hibernation lets Cloudflare unload an idle room from memory without
   // dropping its connections, so idle rooms don't use free-plan time.
   static options = { hibernate: true };
+  state: RoomState = emptyRoomState() 
 
   onConnect(connection: Connection) {
     // Tell the newcomer how many people are here, and tell everyone else
@@ -29,6 +34,14 @@ export class Room extends Server<Env> {
   onClose() {
     const count = [...this.getConnections()].length;
     this.broadcast(`Someone left. ${count} connected.`);
+  }
+
+  async onStart(): Promise<void>  {
+      this.state = await this.ctx.storage.get<RoomState>(STATE_KEY) ?? emptyRoomState()
+  }
+
+  async save(): Promise<void>{
+    await this.ctx.storage.put(STATE_KEY, this.state)
   }
 }
 
