@@ -73,3 +73,5 @@ export type ServerMessage =
 export function encode(message: ClientMessage | ServerMessage): string {
   return JSON.stringify(message);
 }
+
+export type ExtractedMessage<T extends ClientMessage["type"]> = Extract<ClientMessage, {type: T}> 
