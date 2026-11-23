@@ -4,7 +4,7 @@
  */
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "tmp",
+	"name": "jeopardy-clone",
 	"main": "worker/index.ts",
 	"compatibility_date": "2026-11-19",
 	"assets": {
@@ -13,7 +13,21 @@
 	"observability": {
 		"enabled": true
 	},
-	"upload_source_maps": true
+	"upload_source_maps": true,
+
+  /**
+   * Game rooms: one Durable Object ("Room") per room code.
+   * name = how the Worker refers to it (env.Room); class_name = the class exported from worker/index.ts.
+   */
+  "durable_objects": {
+    "bindings": [{ "name": "Room", "class_name": "Room" }]
+  },
+
+  /**
+   * Migrations: add a new entry (new tag) whenever you add or rename a Durable Object class.
+   * Never edit old entries. The free plan requires SQLite-backed classes.
+   */
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }]
 	/**
 	 * Smart Placement
 	 * https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement
