@@ -1,6 +1,12 @@
 import type { Role } from "../shared/types.ts"
 import type { ClueFile } from "../shared/clueFile.ts"
+import { DEFAULT_SETTINGS, type CluePosition, type GameSettings, type Phase, type SoundKind } from "../shared/game.ts"
 
+/**
+ * Everything one room remembers. Private to the server: it contains
+ * everyone's secret keys, so it is never sent to a browser as-is.
+ * Must stay plain data (no Map/Set/classes) so it can be saved.
+ */
 export type RoomState = {
     claimed: boolean
     hostId: string | null
@@ -26,37 +32,7 @@ export type Team = {
     name: string
 }
 
-/** Every situation the game can be in. See "Phases" in game-rules.md. */
-export type Phase =
-    | "lobby"
-    | "board"
-    | "clue"
-    | "answering"
-    | "reveal"
-    | "roundIntro"
-    | "finalWager"
-    | "finalClue"
-    | "finalReveal"
-    | "gameOver"
-
-/** Timer lengths the host can change. Seconds. */
-export type GameSettings = {
-    buzzSeconds: number
-    answerSeconds: number
-    finalSeconds: number
-}
-
-export const DEFAULT_SETTINGS: GameSettings = {
-    buzzSeconds: 8,
-    answerSeconds: 5,
-    finalSeconds: 30,
-}
-
-/**
- * Identifies one clue on the boards, as a string so it can live in lists
- * and lookups that save as JSON. HOW it's built from a clue's position
- * (round, column, row) is your point 5.
- */
+/** Identifies one clue as a string ("round-column-row"), made with clueKey() in shared/game.ts. */
 export type ClueKey = string
 
 /** One result on one clue: "Night Owls got 0-2-1 wrong, -400". */
@@ -68,14 +44,33 @@ export type ClueResult = {
     points: number
 }
 
+/** The clue that's open right now. Set to null in one go when it's finished. */
+export type CurrentClue = {
+    position: CluePosition
+    /** Team answering right now, or null while buzzers are open. */
+    buzzedTeamId: string | null
+    buzzedPersonId: string | null
+    /** Teams that got this clue wrong and can't buzz again. */
+    lockedOutTeamIds: string[]
+    /** When the buzz timer ends (ms timestamp). Reset after a wrong answer. */
+    buzzDeadline: number | null
+    /** When the answer timer ends (ms timestamp), while a team is answering. */
+    answerDeadline: number | null
+    /** Set once the buzz timer has run out (buzzers locked, sound played). */
+    buzzExpired: boolean
+    /** Set once the answer timer has run out (sound played). */
+    answerExpired: boolean
+}
+
 /** Everything about the final round. Lookups are by team id. */
 export type FinalState = {
-    /** Each team's locked-in wager, 0 to 1,000. */
+    /** Each team's wager, 0 to 1,000. */
     wagers: Record<string, number>
     /** Each team's latest typed answer. */
     answers: Record<string, string>
     /** When the final answer timer ends (ms timestamp), or null if not started. */
     deadline: number | null
+    expired: boolean
     /** The host's ruling for each team: true = correct, false = wrong. Missing = not judged yet. */
     judged: Record<string, boolean>
 }
@@ -87,7 +82,6 @@ export type GameState = {
     settings: GameSettings
     /** Which round we're on: an index into clues.boards. */
     roundIndex: number
-
     /** Clues already played, across all rounds. */
     usedClues: ClueKey[]
     /** Team that picks the next clue, or null (host picks freely). */
@@ -96,10 +90,17 @@ export type GameState = {
     scores: Record<string, number>
     /** Every ruling the host made, in order. */
     history: ClueResult[]
+    current: CurrentClue | null
     final: FinalState
+    /** Value of the last clue opened: what the host's +/- buttons use between clues. */
+    lastClueValue: number
+    /** Bumped whenever the display should play a sound. */
+    soundSeq: number
+    soundKind: SoundKind
+}
 
-    // Your part (points 5 and 9–12): how a ClueKey is built, the current
-    // clue, who buzzed, locked-out teams, and the buzz/answer deadlines.
+export function emptyFinalState(): FinalState {
+    return { wagers: {}, answers: {}, deadline: null, expired: false, judged: {} }
 }
 
 export function emptyRoomState(): RoomState{
@@ -117,7 +118,11 @@ export function emptyRoomState(): RoomState{
             pickingTeamId: null,
             scores: {},
             history: [],
-            final: { wagers: {}, answers: {}, deadline: null, judged: {} },
+            current: null,
+            final: emptyFinalState(),
+            lastClueValue: 100,
+            soundSeq: 0,
+            soundKind: "none",
         },
     }
     return room

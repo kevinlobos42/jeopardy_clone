@@ -1,6 +1,7 @@
 /**
  * Shapes that both the browser and the server share.
  */
+import type { GameView } from "./game.ts";
 
 export type Role = "host" | "player" | "display";
 
@@ -37,6 +38,8 @@ export interface LobbyView {
   players: PlayerView[];
   displayCount: number;
   you: YouView;
+  /** Everything about the game itself (phase, board, scores, current clue...). */
+  game: GameView;
 }
 
 /** Response from the "create room" HTTP request (POST /api/rooms). */
