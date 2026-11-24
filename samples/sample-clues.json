@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "title": "Sample game",
+  "boards": [
+    {
+      "name": "Round 1",
+      "columns": [
+        {
+          "topic": "Capitals",
+          "questions": [
+            { "question": "The capital of France", "answer": "Paris", "value": 100 },
+            { "question": "The capital of Japan", "answer": "Tokyo", "value": 200 },
+            { "question": "The capital of Australia", "answer": "Canberra", "value": 300 }
+          ]
+        },
+        {
+          "topic": "Space",
+          "questions": [
+            { "question": "Known as the Red Planet", "answer": "Mars", "value": 100 },
+            { "question": "The Sun is made mostly of this lightest element", "answer": "Hydrogen", "value": 200 },
+            { "question": "The largest planet in our solar system", "answer": "Jupiter", "value": 300 }
+          ]
+        },
+        {
+          "topic": "Animals",
+          "questions": [
+            { "question": "The largest mammal on Earth", "answer": "Blue whale", "value": 100 },
+            { "question": "This bird lays the largest eggs", "answer": "Ostrich", "value": 200 },
+            { "question": "A group of lions is called this", "answer": "Pride", "value": 300 }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Round 2",
+      "columns": [
+        {
+          "topic": "Food & Drink",
+          "questions": [
+            { "question": "The main ingredient in guacamole", "answer": "Avocado", "value": 200 },
+            { "question": "Italian rice dish cooked slowly in broth", "answer": "Risotto", "value": 400 },
+            { "question": "Green Japanese condiment often served with sushi", "answer": "Wasabi", "value": 600 }
+          ]
+        },
+        {
+          "topic": "Inventions",
+          "questions": [
+            { "question": "Patented the telephone in 1876", "answer": "Alexander Graham Bell", "value": 200 },
+            { "question": "Brought movable-type printing to Europe", "answer": "Johannes Gutenberg", "value": 400 },
+            { "question": "Invented the World Wide Web", "answer": "Tim Berners-Lee", "value": 600 }
+          ]
+        },
+        {
+          "topic": "Wordplay",
+          "questions": [
+            { "question": "A word that reads the same backwards, like 'level'", "answer": "Palindrome", "value": 200 },
+            { "question": "", "answer": "", "value": 400 },
+            { "question": "Words that sound alike but differ in meaning, like 'pair' and 'pear'", "answer": "Homophones", "value": 600 }
+          ]
+        }
+      ]
+    }
+  ],
+  "final": {
+    "topic": "Continents",
+    "question": "The only continent with no permanent native population",
+    "answer": "Antarctica"
+  }
+}

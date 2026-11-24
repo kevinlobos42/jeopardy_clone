@@ -1,1 +1,24 @@
 @import "tailwindcss";
+
+/* Colors and fonts from the mockups. Use them as classes: bg-ink, text-muted, font-display, etc. */
+@theme {
+  --color-ink: #0b1033;
+  --color-surface: #161d4d;
+  --color-surface-2: #212a63;
+  --color-line: #2e3878;
+  --color-muted: #a9b0d6;
+  --color-text: #f4f5fb;
+  --color-accent: #f5b83d;
+  --color-tile: #1e3fbf;
+  --color-good: #7ee0a1;
+  --color-bad: #ff8a7a;
+
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: var(--color-ink);
+  color: var(--color-text);
+}
