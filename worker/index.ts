@@ -1,4 +1,4 @@
-import { routePartykitRequest, Server } from "partyserver";
+import { getServerByName, routePartykitRequest, Server } from "partyserver";
 import type { Connection, WSMessage } from "partyserver";
 import {
   emptyRoomState,
@@ -14,7 +14,8 @@ import {
   type ExtractedMessage,
   type ServerMessage,
 } from "../shared/messages.ts";
-import { nameKey, type LobbyView, type TeamView } from "../shared/types.ts";
+import { nameKey, type CreateRoomResponse, type LobbyView, type TeamView } from "../shared/types.ts";
+import { generateRoomCode } from "../shared/roomCode.ts";
 
 /**
  * Holds lobby state and handles messages
@@ -77,10 +78,10 @@ export class Room extends Server<Env> {
     connection: Connection<ConnectionData>,
     message: ExtractedMessage<"join">,
   ) {
-    // if(!this.state.claimed){
-    //   this.sendError(connection, "ROOM_NOT_FOUND", "Room is claimed")
-    //   return
-    // } INTEGRATE LATER
+    if(!this.state.claimed){
+      this.sendError(connection, "ROOM_NOT_FOUND", "No room with that code")
+      return
+    }
 
     if (this.whoIs(connection)) {
       this.sendError(connection, "NOT_ALLOWED", "You've already joined");
@@ -245,7 +246,7 @@ export class Room extends Server<Env> {
   }
 
   onClose() {
-    
+    this.sendLobbyToAll()
   }
 
   async onStart(): Promise<void> {
@@ -317,6 +318,24 @@ export class Room extends Server<Env> {
 
     return lobbyView;
   }
+
+  async claim(): Promise<string | null> {
+    if (this.state.claimed) return null;
+
+    const host: Person = {
+      id: crypto.randomUUID(),
+      key: crypto.randomUUID(),
+      name: "Host",
+      role: "host",
+      teamId: null,
+    };
+    this.state.people[host.id] = host;
+    this.state.claimed = true;
+    this.state.hostId = host.id;
+    await this.save();
+    return host.key;
+  }
+
 }
 
 export default {
@@ -326,6 +345,20 @@ export default {
     if (partyResponse) return partyResponse;
 
     const url = new URL(request.url);
+
+        // Create a room: pick a code, ask that room to claim itself, retry if taken.
+    if (url.pathname === "/api/rooms" && request.method === "POST") {
+      for (let attempt = 0; attempt < 5; attempt++) {
+        const code = generateRoomCode();
+        const room = await getServerByName(env.Room, code);
+        const hostKey = await room.claim();
+        if (hostKey) {
+          const body: CreateRoomResponse = { code, hostKey };
+          return Response.json(body);
+        }
+      }
+      return Response.json({ error: "Could not create a room, try again" }, { status: 500 });
+    }
 
     // Plain HTTP endpoints live under /api/ (the "create room" request goes here later).
     if (url.pathname.startsWith("/api/")) {
