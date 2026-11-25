@@ -1,13 +1,13 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
 import type { LobbyView } from "../../../shared/types.ts";
 import type { ClientMessage } from "../../../shared/messages.ts";
 import { useCountdown } from "../../room/countdown.ts";
-import { Dot, ErrorText, formatScore, scoreOf, teamColor, teamName } from "../../ui/kit.tsx";
+import { ErrorText, formatScore, scoreOf, teamColor, teamName } from "../../ui/kit.tsx";
 import { PlayerFinalAnswer, PlayerFinalReveal, PlayerFinalWager, PlayerGameOver } from "../final/FinalPlayer.tsx";
 
 type Send = (message: ClientMessage) => void;
 
-/** A player's phone during the game. Header with team + score; the body follows the phase. */
+/** A player's phone during the game. Header with team name and score; */
 export function PlayerGame({
   lobby,
   send,
@@ -22,9 +22,10 @@ export function PlayerGame({
   const { game, you } = lobby;
   const teamId = you.teamId as string;
   const color = teamColor(lobby, teamId);
-  const me = lobby.players.find((p) => p.id === you.id);
   const current = game.current;
   const myTeamUp = game.phase === "answering" && current?.buzzedTeamId === teamId;
+  // Where the buzzer was on screen (relative to <main>), so the team color can grow out of it.
+  const buzzerSpotRef = useRef<BuzzerSpot | null>(null);
 
   let body: ReactNode;
   switch (game.phase) {
@@ -32,12 +33,11 @@ export function PlayerGame({
       body = (
         <Waiting
           title={game.pickingTeamId ? `${teamName(lobby, game.pickingTeamId)} ${game.pickingTeamId === teamId ? "(you) are" : "are"} picking` : "The host is picking"}
-          sub="Your buzzer turns on when the next clue appears."
         />
       );
       break;
     case "clue":
-      body = <BuzzerPanel lobby={lobby} send={send} clockOffset={clockOffset} />;
+      body = <BuzzerPanel lobby={lobby} send={send} clockOffset={clockOffset} buzzerSpotRef={buzzerSpotRef} />;
       break;
     case "answering":
       body = myTeamUp ? <TeamUpPanel lobby={lobby} clockOffset={clockOffset} /> : <OtherTeamUpPanel lobby={lobby} />;
@@ -66,19 +66,18 @@ export function PlayerGame({
 
   return (
     <main
-      className="mx-auto flex min-h-dvh w-full max-w-md flex-col gap-6 p-6 text-text transition-colors"
-      style={{ background: myTeamUp ? color : "var(--color-ink)", color: myTeamUp ? "var(--color-ink)" : undefined }}
+      className="relative isolate mx-auto flex min-h-dvh w-full max-w-md flex-col gap-6 bg-ink p-6 text-text"
+      style={{ color: myTeamUp ? "var(--color-ink)" : undefined }}
     >
-      <header className="flex items-center justify-between rounded-[18px] bg-ink px-[18px] py-4 text-text" style={{ border: "1px solid var(--color-line)" }}>
+      {myTeamUp && <BuzzFill color={color} spotRef={buzzerSpotRef} />}
+      <header
+        className="flex items-center justify-between rounded-[18px] px-4.5 py-4"
+        style={{ background: color, color: "var(--color-ink)", border: "1px solid var(--color-line)" }}
+      >
         <div className="flex flex-col gap-0.5">
-          <span className="inline-flex items-center gap-2 text-[15px] text-muted">
-            <Dot color={color} />
-            {teamName(lobby, teamId)}
-          </span>
-          <span className="text-[15px] text-muted">{me?.name}</span>
+          <span className="text-[15px] font-semibold">{teamName(lobby, teamId)}</span>
         </div>
         <div className="flex flex-col items-end gap-0.5">
-          <span className="text-[13px] uppercase tracking-[0.08em] text-muted">Team score</span>
           <span className="font-display text-[32px] font-bold">{formatScore(scoreOf(lobby, teamId))}</span>
         </div>
       </header>
@@ -88,7 +87,32 @@ export function PlayerGame({
   );
 }
 
-function Waiting({ title, sub }: { title: string; sub: string }) {
+type BuzzerSpot = { x: number; y: number; radius: number };
+
+/** The team color, growing out of where the buzzer was until it fills the screen. */
+function BuzzFill({ color, spotRef }: { color: string; spotRef: RefObject<BuzzerSpot | null> }) {
+  const ref = useRef<HTMLDivElement>(null);
+  // Set the starting point before the first paint. No spot (e.g. the page
+  // was refreshed mid-answer): grow from the middle.
+  useLayoutEffect(() => {
+    const el = ref.current;
+    const spot = spotRef.current;
+    if (!el || !spot) return;
+    el.style.setProperty("--x", `${spot.x}px`);
+    el.style.setProperty("--y", `${spot.y}px`);
+    el.style.setProperty("--r0", `${spot.radius}px`);
+  }, [spotRef]);
+  return (
+    <div
+      ref={ref}
+      aria-hidden="true"
+      className="buzz-fill pointer-events-none absolute inset-0 -z-10"
+      style={{ "--x": "50%", "--y": "50%", "--r0": "0px", background: color } as CSSProperties}
+    />
+  );
+}
+
+function Waiting({ title, sub }: { title: string; sub?: string }) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-7 text-center">
       <BuzzerShape label="Buzzer off" disabled dashed />
@@ -133,7 +157,25 @@ function ClueLabel({ lobby }: { lobby: LobbyView }) {
 
 // ---------- buzzers open ----------
 
-function BuzzerPanel({ lobby, send, clockOffset }: { lobby: LobbyView; send: Send; clockOffset: number }) {
+function BuzzerPanel({
+  lobby,
+  send,
+  clockOffset,
+  buzzerSpotRef,
+}: {
+  lobby: LobbyView;
+  send: Send;
+  clockOffset: number;
+  buzzerSpotRef: RefObject<BuzzerSpot | null>;
+}) {
+  /** Remember where the buzzer is, relative to <main>. Teammates' phones record it too, so their fill starts there as well. */
+  const measure = (el: HTMLElement | null) => {
+    const main = el?.closest("main");
+    if (!el || !main) return;
+    const b = el.getBoundingClientRect();
+    const m = main.getBoundingClientRect();
+    buzzerSpotRef.current = { x: b.left - m.left + b.width / 2, y: b.top - m.top + b.height / 2, radius: b.width / 2 };
+  };
   const current = lobby.game.current;
   const teamId = lobby.you.teamId as string;
   const left = useCountdown(current?.buzzDeadline ?? null, clockOffset);
@@ -160,14 +202,16 @@ function BuzzerPanel({ lobby, send, clockOffset }: { lobby: LobbyView; send: Sen
   } else {
     main = (
       <button
+        ref={measure}
         type="button"
         disabled={pressed}
-        onClick={() => {
+        onClick={(e) => {
+          measure(e.currentTarget);
           setPressed(true);
           navigator.vibrate?.(40);
           send({ type: "buzz" });
         }}
-        className="flex size-[300px] items-center justify-center rounded-full bg-accent font-display text-5xl font-bold tracking-[0.04em] text-ink shadow-[0_0_0_10px_rgba(245,184,61,0.22),0_0_0_22px_rgba(245,184,61,0.1)] transition active:scale-95 disabled:opacity-70"
+        className="flex size-[300px] items-center justify-center rounded-full bg-accent font-display text-5xl font-bold tracking-[0.04em] text-ink transition active:scale-95 disabled:opacity-70"
       >
         {pressed ? "…" : "BUZZ"}
       </button>
@@ -192,13 +236,13 @@ function TeamUpPanel({ lobby, clockOffset }: { lobby: LobbyView; clockOffset: nu
   const left = useCountdown(current?.answerDeadline ?? null, clockOffset);
   if (!current) return null;
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-5 text-center">
+    <div className="fade-up flex flex-1 flex-col items-center justify-center gap-5 text-center">
       <span className="font-display text-lg font-bold uppercase tracking-[0.08em]">
         {current.topic} · {formatScore(current.value)}
       </span>
-      <h1 className="m-0 font-display text-[52px] font-bold leading-none tracking-tight">Your team is up!</h1>
+      <h1 className="m-0 font-display text-[52px] font-bold leading-none tracking-tight">Your team buzzed!</h1>
       <p className="m-0 max-w-[300px] text-[19px] leading-relaxed">
-        {current.buzzedByName ? `${current.buzzedByName} buzzed first. ` : ""}Anyone on your team can answer. Say it out loud.
+        {current.buzzedByName ? `${current.buzzedByName} buzzed first. ` : ""}
       </p>
       <span className="font-display text-3xl font-bold">{left === 0 || current.answerExpired ? "Time!" : `${left}s`}</span>
     </div>
@@ -217,7 +261,7 @@ function OtherTeamUpPanel({ lobby }: { lobby: LobbyView }) {
       <div className="flex flex-col gap-1.5">
         <p className="m-0 text-xl font-semibold">{teamName(lobby, current.buzzedTeamId)} buzzed first</p>
         <p className="m-0 max-w-[300px] text-base leading-relaxed text-muted">
-          {lockedOut ? "Your team is out for this clue." : "If they get it wrong, your buzzer turns back on."}
+          {lockedOut ? "Your team is out for this one." : "If they get it wrong, your buzzer turns back on."}
         </p>
       </div>
     </div>
@@ -239,7 +283,7 @@ function RevealPanel({ lobby }: { lobby: LobbyView }) {
       <p className="m-0 font-display text-[40px] font-bold leading-tight text-accent">{current.answer}</p>
       {mine.length > 0 && (
         <p className={`m-0 text-xl font-semibold ${net < 0 ? "text-bad" : "text-good"}`}>
-          {net < 0 ? `Not quite. ${formatScore(net)}` : `Nice! +${formatScore(net)}`}
+          {net < 0 ? `Wrong. ${formatScore(net)}` : `Correct! +${formatScore(net)}`}
         </p>
       )}
     </div>

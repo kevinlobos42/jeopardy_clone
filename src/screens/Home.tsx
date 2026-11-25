@@ -16,6 +16,7 @@ export function Home({
   return (
     <PhoneScreen className="justify-between">
       <div className="flex flex-col items-center gap-7 pt-20">
+        <img src="/logo.png" alt="NOT Jeopardy" />
         <div aria-hidden="true" className="grid w-56 grid-cols-3 gap-1.5">
           {TILES.map((t, i) => (
             <div
@@ -26,10 +27,6 @@ export function Home({
             </div>
           ))}
         </div>
-        <div className="flex flex-col items-center gap-2">
-          <h1 className="m-0 font-display text-[44px] font-bold tracking-tight">Buzzboard</h1>
-          <p className="m-0 text-[17px] text-muted">Trivia night, on your phone.</p>
-        </div>
       </div>
 
       <div className="flex flex-col gap-3">
@@ -38,7 +35,6 @@ export function Home({
           {busy ? "Creating room…" : "Host a game"}
         </Button>
         <ErrorText>{error}</ErrorText>
-        <p className="m-0 mt-2 text-center text-sm text-muted">Hosting creates a room and a code to share.</p>
       </div>
     </PhoneScreen>
   );

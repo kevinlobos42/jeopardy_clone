@@ -20,7 +20,7 @@ function Title({ children, sub }: { children: React.ReactNode; sub?: React.React
 function AnswerBox({ answer }: { answer: string | null }) {
   return (
     <div className="flex flex-col gap-1 rounded-2xl border border-dashed border-accent bg-surface px-5 py-3.5">
-      <span className="text-[13px] font-semibold uppercase tracking-[0.08em] text-accent">Correct answer · only you see this</span>
+      <span className="text-[13px] font-semibold uppercase tracking-[0.08em] text-accent">Correct answer</span>
       <span className="text-xl font-semibold">{answer ?? "?"}</span>
     </div>
   );
@@ -111,7 +111,7 @@ export function HostFinalReveal({ lobby, send }: { lobby: LobbyView; send: Send 
 
   return (
     <>
-      <Title sub="Tap Correct or Wrong for each team. You can change a ruling.">Reveal each team</Title>
+      <Title sub="Tap Correct or Wrong for each team.">Reveal each team</Title>
       <AnswerBox answer={final.answer} />
       <div className="flex flex-col gap-3">
         {order.map((t) => {

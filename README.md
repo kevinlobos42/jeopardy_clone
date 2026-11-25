@@ -1,32 +1,40 @@
-# React + TypeScript + Vite
+# Not Jeopardy
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+A party trivia game for a room full of people. One person hosts from their phone, everyone else plays from theirs, and a TV or laptop shows the board.
 
-Currently, two official plugins are available:
+## How a game works
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Host** (phone): creates a room, uploads a clue file, sets the timers, picks clues, and judges answers.
+- **Players** (phones): join with the room code, create or pick a team (each team has its own name and color), buzz in, and enter the final-round wager and answer.
+- **Display** (TV or laptop): shows the board, clues, and scores, and plays the sounds. Tap "Tap to enable sound" once on it.
 
-## React Compiler
+Each round: a team picks a clue, buzzers open, the first team in answers out loud, and the host marks it right or wrong. A wrong answer locks that team out and reopens buzzers for the others. After the last board comes a final round where every team wagers and writes an answer.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Clue files
 
-## Expanding the Oxlint configuration
+The host uploads a JSON file. See [samples/sample-clues.json](samples/sample-clues.json) for the format and [shared/clueFile.ts](shared/clueFile.ts) for the exact rules. In short:
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+- `boards`: one per round, each with `columns` (a `topic` plus `questions`, each with `question`, `answer`, `value`).
+- `final`: `topic`, `question`, `answer`.
+- Any clue can have `questionMedia` / `answerMedia`: `{ "type": "image" | "audio" | "video", "src": "/media/file.jpg" or "https://..." }`. Audio and video clues hold the buzzers until they finish playing.
+- A clue with an empty question or answer is skipped.
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+Sounds go in [public/sounds/](public/sounds/README.txt). Any that are missing fall back to built-in tones.
+
+## Development
+
+Built with React, Vite, and Tailwind on a Cloudflare Worker. Each room is a Durable Object (`worker/index.ts`) that holds the game state, runs the timers, and sends each person only what they're allowed to see.
+
+```sh
+npm install
+npm run dev      # local dev server (Worker + app)
+npm run build    # type-check and build
+npm run lint     # oxlint
+npm run deploy   # build and deploy with Wrangler
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Code layout:
+
+- `shared/`: types, message schemas, and the clue file schema used by both sides.
+- `worker/`: the server (one `Room` per room code).
+- `src/`: the React app. `src/room/` handles the connection, timers, and sounds; `src/screens/` has one folder per role.

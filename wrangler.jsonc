@@ -19,6 +19,9 @@
    * Game rooms: one Durable Object ("Room") per room code.
    * name = how the Worker refers to it (env.Room); class_name = the class exported from worker/index.ts.
    */
+  "routes": [
+	{ "pattern": "jeopardy.kevinlobos.com", "custom_domain": true}
+  ],
   "durable_objects": {
     "bindings": [{ "name": "Room", "class_name": "Room" }]
   },

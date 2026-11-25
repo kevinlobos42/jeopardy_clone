@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { TEAM_NAME_MAX, type LobbyView } from "../../shared/types.ts";
+import { TEAM_NAME_MAX, type LobbyView, type TeamColor } from "../../shared/types.ts";
 import type { GameSettings } from "../../shared/game.ts";
-import { Button, Dot, ErrorText, playerCountLabel, teamColor } from "../ui/kit.tsx";
+import { Button, ColorPicker, Dot, ErrorText, playerCountLabel, teamColor, useTeamColorChoice } from "../ui/kit.tsx";
 import { ClueUpload, TimerSettings } from "./HostSetup.tsx";
 
 export function HostLobby({
@@ -15,7 +15,7 @@ export function HostLobby({
   error,
 }: {
   lobby: LobbyView;
-  onCreateTeam: (name: string) => void;
+  onCreateTeam: (name: string, color: TeamColor) => void;
   onLeave: () => void;
   onLoadClues: (text: string) => void;
   onSettings: (settings: GameSettings) => void;
@@ -24,6 +24,7 @@ export function HostLobby({
   error: string | null;
 }) {
   const [newTeam, setNewTeam] = useState("");
+  const { color: newColor, setColor: setNewColor, taken } = useTeamColorChoice(lobby);
   const [copied, setCopied] = useState(false);
   const unassigned = lobby.players.filter((p) => p.teamId === null);
   const game = lobby.game;
@@ -46,7 +47,7 @@ export function HostLobby({
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col bg-ink text-text">
       <header className="flex flex-col gap-1.5 border-b border-line px-6 pb-4 pt-5">
-        <span className="text-[13px] font-semibold uppercase tracking-[0.08em] text-muted">Room code · You're the host</span>
+        <span className="text-[13px] font-semibold uppercase tracking-[0.08em] text-muted">Room code · Host</span>
         <div className="flex items-center justify-between">
           <span className="font-display text-[44px] font-bold tracking-[0.18em] text-accent">{lobby.code}</span>
           <button
@@ -78,7 +79,6 @@ export function HostLobby({
 
         <h2 className="m-0 mt-2 font-display text-[22px] font-bold">Teams</h2>
 
-        {lobby.teams.length === 0 && <p className="m-0 text-muted">No teams yet. Create one, or let players make their own.</p>}
 
         {lobby.teams.map((team) => {
           const members = lobby.players.filter((p) => team.memberIds.includes(p.id));
@@ -114,28 +114,35 @@ export function HostLobby({
         )}
 
         <form
-          className="flex gap-2.5"
+          className="flex flex-col gap-2.5"
           onSubmit={(e) => {
             e.preventDefault();
-            if (!newTeam.trim()) return;
-            onCreateTeam(newTeam.trim());
+            if (!newTeam.trim() || !newColor) return;
+            onCreateTeam(newTeam.trim(), newColor);
             setNewTeam("");
           }}
         >
-          <label htmlFor="hostteam" className="sr-only">
-            New team name
-          </label>
-          <input
-            id="hostteam"
-            value={newTeam}
-            onChange={(e) => setNewTeam(e.target.value)}
-            placeholder="New team name"
-            maxLength={TEAM_NAME_MAX}
-            className="h-12 min-w-0 flex-1 rounded-xl border border-line bg-surface px-3.5 text-base outline-none placeholder:text-[#7f88bd] focus:border-accent"
-          />
-          <Button type="submit" variant="secondary" className="h-12 shrink-0 text-[15px]">
-            Add team
-          </Button>
+          {newColor ? (
+            <ColorPicker value={newColor} taken={taken} onChange={setNewColor} />
+          ) : (
+            <p className="m-0 text-sm text-muted">Every team color is taken, so no more teams can be added.</p>
+          )}
+          <div className="flex gap-2.5">
+            <label htmlFor="hostteam" className="sr-only">
+              New team name
+            </label>
+            <input
+              id="hostteam"
+              value={newTeam}
+              onChange={(e) => setNewTeam(e.target.value)}
+              placeholder="New team name"
+              maxLength={TEAM_NAME_MAX}
+              className="h-12 min-w-0 flex-1 rounded-xl border border-line bg-surface px-3.5 text-base outline-none placeholder:text-[#7f88bd] focus:border-accent"
+            />
+            <Button type="submit" variant="secondary" className="h-12 shrink-0 text-[15px]" disabled={!newColor}>
+              Add team
+            </Button>
+          </div>
         </form>
         <ErrorText>{error}</ErrorText>
       </div>
@@ -144,7 +151,6 @@ export function HostLobby({
         <Button disabled={startBlocker !== null} onClick={onStart}>
           Start game
         </Button>
-        <p className="m-0 text-center text-[13px] text-muted">{startBlocker ?? "Everyone can still join after you start."}</p>
         <Button variant="ghost" className="h-11 text-[15px]" onClick={onLeave}>
           Leave room
         </Button>

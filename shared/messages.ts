@@ -6,7 +6,7 @@
  * messages are plain types, because the browser trusts the server.
  */
 import { z } from "zod";
-import { NAME_MAX, TEAM_NAME_MAX } from "./types.ts";
+import { NAME_MAX, TEAM_COLORS, TEAM_NAME_MAX } from "./types.ts";
 import { SETTING_LIMITS } from "./game.ts";
 import type { LobbyView } from "./types.ts";
 
@@ -17,16 +17,11 @@ const teamName = z.string().trim().min(1).max(TEAM_NAME_MAX);
 const seconds = (limits: { min: number; max: number }) => z.number().int().min(limits.min).max(limits.max);
 
 export const ClientMessageSchema = z.discriminatedUnion("type", [
-  /** Anyone: "I've been here before, here's my key." The host always enters this way. */
   z.object({ type: z.literal("rejoin"), key: z.string().min(1) }),
-  /** New person: "I'm joining with this name." */
   z.object({ type: z.literal("join"), name: personName }),
-  /** Joined, no role yet: "I'll be a player / a display." */
   z.object({ type: z.literal("chooseRole"), role: z.enum(["player", "display"]) }),
-  /** Unassigned player: "Put me on this team." */
   z.object({ type: z.literal("pickTeam"), teamId: z.string().min(1) }),
-  /** Unassigned player: make a team and join it. Host: make an empty team. */
-  z.object({ type: z.literal("createTeam"), name: teamName }),
+  z.object({ type: z.literal("createTeam"), name: teamName, color: z.enum(TEAM_COLORS) }),
 
   // ----- Game (host) -----
   /** Host, lobby: upload the clue file as text. */
@@ -103,6 +98,7 @@ export type ErrorCode =
   | "NOT_HOST"
   | "NAME_TAKEN"
   | "TEAM_NAME_TAKEN"
+  | "TEAM_COLOR_TAKEN"
   | "INVALID_NAME"
   | "TEAM_NOT_FOUND"
   | "ALREADY_ON_TEAM"

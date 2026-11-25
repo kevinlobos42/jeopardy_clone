@@ -97,7 +97,7 @@ function App() {
     return (
       <HostLobby
         lobby={lobby}
-        onCreateTeam={(name) => room.send({ type: "createTeam", name })}
+        onCreateTeam={(name, color) => room.send({ type: "createTeam", name, color })}
         onLeave={room.leave}
         onLoadClues={(text) => room.send({ type: "loadClues", text })}
         onSettings={(settings) => room.send({ type: "updateSettings", settings })}
@@ -128,7 +128,7 @@ function App() {
       <PickTeam
         lobby={lobby}
         onPick={(teamId) => room.send({ type: "pickTeam", teamId })}
-        onCreate={(name) => room.send({ type: "createTeam", name })}
+        onCreate={(name, color) => room.send({ type: "createTeam", name, color })}
         error={errorText}
       />
     );

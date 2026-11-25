@@ -3,7 +3,7 @@
  * GameView each client receives (inside the lobby message).
  */
 
-/** Every situation the game can be in. See "Phases" in game-rules.md. */
+/** Every situation the game can be in, in the order a game usually goes. */
 export type Phase =
   | "lobby"
   | "board"

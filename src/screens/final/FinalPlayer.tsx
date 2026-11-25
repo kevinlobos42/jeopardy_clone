@@ -144,7 +144,7 @@ export function PlayerFinalAnswer({ lobby, send, clockOffset }: { lobby: LobbyVi
           className="resize-none rounded-2xl border-2 border-accent bg-surface px-4 py-3.5 text-xl outline-none disabled:opacity-60"
         />
         <p className="m-0 text-sm text-muted">
-          {mine.answered && !dirty ? "Sent. Shared with your team; the last version sent before time runs out counts." : "Shared with your team. The last version sent before time runs out counts."}
+          {mine.answered && !dirty ? "Sent. Shared with your team" : "Shared with your team."}
         </p>
         <Button type="submit" disabled={timeUp || text.trim() === ""}>
           {mine.answered ? "Send new answer" : "Send answer"}
@@ -165,7 +165,6 @@ export function PlayerFinalReveal({ lobby }: { lobby: LobbyView }) {
       {mine.correct === null ? (
         <>
           <h1 className="m-0 font-display text-4xl font-bold">Answers are in</h1>
-          <p className="m-0 text-base text-muted">Watch the screen while the host reveals each team.</p>
         </>
       ) : (
         <>
@@ -202,7 +201,6 @@ export function PlayerGameOver({ lobby }: { lobby: LobbyView }) {
             </p>
           </>
         )}
-        {lobby.game.final?.answer && <p className="m-0 text-sm text-muted">Final answer: {lobby.game.final.answer}</p>}
       </div>
       <ol className="m-0 flex list-none flex-col gap-2.5 p-0">
         {table.map((s) => (

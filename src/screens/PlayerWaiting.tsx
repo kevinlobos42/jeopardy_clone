@@ -22,20 +22,19 @@ export function PlayerWaiting({ lobby }: { lobby: LobbyView }) {
         </div>
 
         {team && (
-          <div className="w-full overflow-hidden rounded-[18px] border border-line bg-surface">
-            <div className="h-1.5" style={{ background: color }} />
+          <div className="w-full rounded-[18px] border border-line" style={{ background: color, color: "var(--color-ink)" }}>
             <div className="flex flex-col gap-3.5 px-5 py-4">
               <div className="flex items-baseline justify-between">
                 <span className="font-display text-[22px] font-bold">{team.name}</span>
-                <span className="text-sm text-muted">{playerCountLabel(members.length)}</span>
+                <span className="text-sm opacity-70">{playerCountLabel(members.length)}</span>
               </div>
               <ul className="m-0 flex list-none flex-col gap-2.5 p-0 text-base">
                 {members.map((p) => (
-                  <li key={p.id} className={`flex items-center gap-2.5 ${p.id === lobby.you.id ? "font-semibold" : ""}`}>
-                    <Dot color={p.connected ? "#7ee0a1" : "#5a6399"} size={8} />
+                  <li key={p.id} className={`flex items-center gap-2.5 ${p.id === lobby.you.id ? "font-semibold" : ""} ${p.connected ? "" : "opacity-55"}`}>
+                    <Dot color="var(--color-ink)" size={8} />
                     {p.name}
                     {p.id === lobby.you.id && " (you)"}
-                    {!p.connected && <span className="text-sm text-muted">offline</span>}
+                    {!p.connected && <span className="text-sm">offline</span>}
                   </li>
                 ))}
               </ul>
@@ -44,7 +43,6 @@ export function PlayerWaiting({ lobby }: { lobby: LobbyView }) {
         )}
       </div>
 
-      <p className="m-0 text-center text-sm text-muted">Keep this screen open. Your buzzer will appear here.</p>
     </PhoneScreen>
   );
 }

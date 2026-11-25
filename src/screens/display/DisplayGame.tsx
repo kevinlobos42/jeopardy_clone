@@ -77,10 +77,13 @@ function ScoreStrip({ lobby }: { lobby: LobbyView }) {
       {lobby.teams.map((team) => {
         const score = scoreOf(lobby, team.id);
         return (
-          <div key={team.id} className="flex h-[72px] items-center gap-3.5 rounded-[14px] border border-line bg-surface px-5">
-            <Dot color={teamColor(lobby, team.id)} size={14} />
+          <div
+            key={team.id}
+            className="flex h-[72px] items-center gap-3.5 rounded-[14px] border border-line px-5"
+            style={{ background: teamColor(lobby, team.id), color: "var(--color-ink)" }}
+          >
             <span className="min-w-0 flex-1 truncate text-xl font-semibold">{team.name}</span>
-            <span className={`font-display text-3xl font-bold ${score < 0 ? "text-bad" : ""}`}>{formatScore(score)}</span>
+            <span className="font-display text-3xl font-bold">{formatScore(score)}</span>
           </div>
         );
       })}

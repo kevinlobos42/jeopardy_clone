@@ -1,5 +1,5 @@
-import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from "react";
-import type { LobbyView, TeamView } from "../../shared/types.ts";
+import { useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode } from "react";
+import { TEAM_COLORS, type LobbyView, type TeamColor, type TeamView } from "../../shared/types.ts";
 
 /** Phone-sized screen wrapper used by every phone screen. */
 export function PhoneScreen({ children, className = "" }: { children: ReactNode; className?: string }) {
@@ -16,12 +16,12 @@ export function Button({ variant = "primary", className = "", ...props }: Button
   const styles = {
     primary: "bg-accent text-ink font-bold hover:brightness-105",
     secondary: "bg-surface text-text border border-line font-semibold hover:bg-surface-2",
-    ghost: "bg-transparent text-muted font-medium hover:text-text",
+    ghost: "bg-transparent text-muted font-medium hover:text-text hover:underline",
   }[variant];
   return (
     <button
       type="button"
-      className={`flex h-14 items-center justify-center rounded-2xl px-5 text-[17px] transition disabled:cursor-not-allowed disabled:opacity-50 ${styles} ${className}`}
+      className={`flex h-14 items-center justify-center rounded-2xl px-5 text-[17px] transition hover:cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 ${styles} ${className}`}
       {...props}
     />
   );
@@ -74,12 +74,75 @@ export function TextField({
   );
 }
 
-/** Team colors, assigned by the team's position in the lobby. */
-const TEAM_COLORS = ["#5ec8f2", "#c79bff", "#7ee0a1", "#ff8a7a", "#f5b83d", "#8fa8ff", "#ffd27a", "#66e0d0"];
-
+/** The color the team picked when it was created. Grey if there's no such team. */
 export function teamColor(lobby: LobbyView, teamId: string | null): string {
-  const index = lobby.teams.findIndex((t) => t.id === teamId);
-  return index === -1 ? "#5a6399" : TEAM_COLORS[index % TEAM_COLORS.length];
+  return lobby.teams.find((t) => t.id === teamId)?.color ?? "#5a6399";
+}
+
+/** Spoken names for the colors, for screen readers. */
+const COLOR_NAMES: Record<TeamColor, string> = {
+  "#5ec8f2": "Sky blue",
+  "#c79bff": "Purple",
+  "#7ee0a1": "Green",
+  "#ff8a7a": "Coral",
+  "#f5b83d": "Gold",
+  "#8fa8ff": "Periwinkle",
+  "#ffd27a": "Yellow",
+  "#66e0d0": "Teal",
+};
+
+/**
+ * The color picked for a new team. If the picked color gets taken by
+ * another team in the meantime, it falls back to the first free one.
+ * `color` is null when every color is taken.
+ */
+export function useTeamColorChoice(lobby: LobbyView) {
+  const [picked, setPicked] = useState<TeamColor | null>(null);
+  const taken = new Set(lobby.teams.map((t) => t.color));
+  const free = TEAM_COLORS.filter((c) => !taken.has(c));
+  const color = picked !== null && free.includes(picked) ? picked : (free[0] ?? null);
+  return { color, setColor: setPicked, taken };
+}
+
+/** A row of color swatches for a new team. Colors other teams have are crossed out. */
+export function ColorPicker({
+  value,
+  taken,
+  onChange,
+}: {
+  value: TeamColor | null;
+  taken: Set<string>;
+  onChange: (color: TeamColor) => void;
+}) {
+  return (
+    <div role="radiogroup" aria-label="Team color" className="flex flex-wrap gap-2.5">
+      {TEAM_COLORS.map((c) => {
+        const isTaken = taken.has(c);
+        const selected = c === value;
+        return (
+          <button
+            key={c}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            aria-label={isTaken ? `${COLOR_NAMES[c]} (taken)` : COLOR_NAMES[c]}
+            disabled={isTaken}
+            onClick={() => onChange(c)}
+            className={`relative size-10 rounded-full transition disabled:cursor-not-allowed disabled:opacity-25 ${
+              selected ? "ring-[3px] ring-text ring-offset-[3px] ring-offset-ink" : "hover:scale-110"
+            }`}
+            style={{ background: c }}
+          >
+            {isTaken && (
+              <svg aria-hidden="true" className="absolute inset-0 m-auto" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0b1033" strokeWidth="3" strokeLinecap="round">
+                <path d="M6 6l12 12M18 6L6 18" />
+              </svg>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
 }
 
 export function Dot({ color, size = 10 }: { color: string; size?: number }) {

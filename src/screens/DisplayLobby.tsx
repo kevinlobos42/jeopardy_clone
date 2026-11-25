@@ -9,7 +9,7 @@ export function DisplayLobby({ lobby }: { lobby: LobbyView }) {
   return (
     <main className="flex min-h-dvh flex-col justify-between gap-8 bg-ink px-10 py-10 text-text lg:px-14">
       <div className="flex items-center justify-between">
-        <span className="font-display text-[28px] font-bold tracking-tight">Buzzboard</span>
+        <img src="/logo.png" alt = "NOT Jeopardy" width={260}/>
         <span className="inline-flex items-center gap-2.5 text-xl text-muted">
           <Dot color={lobby.hostConnected ? "#f5b83d" : "#ff8a7a"} size={12} />
           {lobby.hostConnected ? "Waiting for the host to start" : "Host disconnected, waiting for them to come back"}
@@ -46,14 +46,17 @@ export function DisplayLobby({ lobby }: { lobby: LobbyView }) {
           {lobby.teams.map((team) => {
             const members = lobby.players.filter((p) => team.memberIds.includes(p.id));
             return (
-              <section key={team.id} className="overflow-hidden rounded-[18px] border border-line bg-surface">
-                <div className="h-2" style={{ background: teamColor(lobby, team.id) }} />
-                <div className="flex flex-col gap-3.5 px-5 pb-5 pt-4">
+              <section
+                key={team.id}
+                className="rounded-[18px] border border-line"
+                style={{ background: teamColor(lobby, team.id), color: "var(--color-ink)" }}
+              >
+                <div className="flex flex-col gap-3.5 px-5 py-5">
                   <h2 className="m-0 font-display text-[22px] font-bold leading-tight">{team.name}</h2>
                   <ul className="m-0 flex list-none flex-col gap-2.5 p-0">
-                    {members.length === 0 && <li className="text-lg text-muted">No one yet</li>}
+                    {members.length === 0 && <li className="text-lg opacity-70">No one yet</li>}
                     {members.map((p) => (
-                      <li key={p.id} className={`text-[19px] ${p.connected ? "" : "text-muted"}`}>
+                      <li key={p.id} className={`text-[19px] ${p.connected ? "" : "opacity-55"}`}>
                         {p.name}
                         {!p.connected && " (offline)"}
                       </li>

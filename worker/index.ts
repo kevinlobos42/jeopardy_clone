@@ -15,7 +15,7 @@ import {
   type ExtractedMessage,
   type ServerMessage,
 } from "../shared/messages.ts";
-import { nameKey, type CreateRoomResponse, type LobbyView, type TeamView } from "../shared/types.ts";
+import { nameKey, TEAM_COLORS, type CreateRoomResponse, type LobbyView, type TeamView } from "../shared/types.ts";
 import { generateRoomCode } from "../shared/roomCode.ts";
 import { isTimedMedia, parseClueFile } from "../shared/clueFile.ts";
 import { clueKey, maxFinalWager, type Phase, type SoundKind } from "../shared/game.ts";
@@ -222,12 +222,21 @@ export class Room extends Server<Env> {
         );
         return;
       }
+      if (team.color === message.color) {
+        this.sendError(
+          connection,
+          "TEAM_COLOR_TAKEN",
+          "Another team already has this color",
+        );
+        return;
+      }
     }
 
     // create team
     const team: Team = {
       id: crypto.randomUUID(),
       name: message.name,
+      color: message.color,
     };
     this.state.teams[team.id] = team;
     if (person.role === "player") {
@@ -314,6 +323,13 @@ export class Room extends Server<Env> {
     const fresh = emptyRoomState();
     // Merge with a fresh state so rooms saved by an older version still load.
     this.state = saved ? { ...fresh, ...saved, game: { ...fresh.game, ...saved.game } } : fresh;
+    // Teams saved before colors existed: give each one a color nobody else has.
+    const teams = Object.values(this.state.teams);
+    for (const team of teams) {
+      if (team.color) continue;
+      const taken = new Set(teams.map((t) => t.color));
+      team.color = TEAM_COLORS.find((c) => !taken.has(c)) ?? TEAM_COLORS[0];
+    }
   }
 
   async save(): Promise<void> {
@@ -717,6 +733,7 @@ export class Room extends Server<Env> {
       teams.push({
         id: t.id,
         name: t.name,
+        color: t.color,
         memberIds: members,
       });
     }

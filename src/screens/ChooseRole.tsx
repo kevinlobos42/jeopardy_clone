@@ -13,7 +13,7 @@ export function ChooseRole({
   return (
     <PhoneScreen>
       <RoomPill code={lobby.code} />
-      <Title sub="Pick carefully. Only the host can change this.">How are you joining?</Title>
+      <Title >How are you joining?</Title>
 
       <div className="flex flex-col gap-3.5">
         <RoleCard

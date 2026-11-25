@@ -11,8 +11,14 @@ export type ChosenRole = Exclude<Role, "host">;
 export interface TeamView {
   id: string;
   name: string;
+  /** One of TEAM_COLORS. Unique within the room. */
+  color: string;
   memberIds: string[];
 }
+
+/** Colors a team can pick when it's created. No two teams in a room share one. */
+export const TEAM_COLORS = ["#5ec8f2", "#c79bff", "#7ee0a1", "#ff8a7a", "#f5b83d", "#8fa8ff", "#ffd27a", "#66e0d0"] as const;
+export type TeamColor = (typeof TEAM_COLORS)[number];
 
 export interface PlayerView {
   id: string;

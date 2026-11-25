@@ -30,6 +30,8 @@ export type Person = {
 export type Team = {
     id: string
     name: string
+    /** One of TEAM_COLORS (shared/types.ts), unique within the room. */
+    color: string
 }
 
 /** Identifies one clue as a string ("round-column-row"), made with clueKey() in shared/game.ts. */
@@ -66,7 +68,7 @@ export type CurrentClue = {
 
 /** Everything about the final round. Lookups are by team id. */
 export type FinalState = {
-    /** Each team's wager, 0 to 1,000. */
+    /** Each team's wager, from 0 up to maxFinalWager(score) (see shared/game.ts). */
     wagers: Record<string, number>
     /** Each team's latest typed answer. */
     answers: Record<string, string>

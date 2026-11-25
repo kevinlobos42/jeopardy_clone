@@ -172,7 +172,6 @@ export function DisplayGameOver({ lobby }: { lobby: LobbyView }) {
         <h1 className="m-0 font-display text-[clamp(44px,5.5vw,72px)] font-bold leading-tight tracking-tight">
           {winners.length ? `${winners.length > 1 ? "Winners" : "Winner"}: ${winners.map((w) => w.name).join(" & ")}` : "Thanks for playing"}
         </h1>
-        {lobby.game.final?.answer && <span className="text-xl text-muted">Final answer: {lobby.game.final.answer}</span>}
         {lobby.game.final?.answerMedia?.type === "image" && (
           <img src={lobby.game.final.answerMedia.src} alt="" className="max-h-[22vh] rounded-xl object-contain" />
         )}

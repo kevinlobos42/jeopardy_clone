@@ -1,6 +1,6 @@
 /**
  * The clue file the host uploads, described with Zod so it can be
- * checked before a game starts. Matches the format in game-rules.md.
+ * checked before a game starts. Example: samples/sample-clues.json.
  *
  * Shape checks only. A clue with an empty question or answer is still
  * VALID here; the game treats it as missing and skips it.

@@ -17,6 +17,40 @@
   --font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
 }
 
+/*
+ * Player phone: the team color grows out of the buzzer to fill the screen.
+ * The element sets --x / --y (where the buzzer was) and --r0 (its radius).
+ */
+@keyframes buzz-fill {
+  from {
+    clip-path: circle(var(--r0) at var(--x) var(--y));
+  }
+  to {
+    clip-path: circle(150% at var(--x) var(--y));
+  }
+}
+.buzz-fill {
+  animation: buzz-fill 550ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+/* Fade content in once the color has mostly filled in. */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+.fade-up {
+  animation: fade-up 300ms 250ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .buzz-fill,
+  .fade-up {
+    animation: none;
+  }
+}
+
 body {
   margin: 0;
   background: var(--color-ink);

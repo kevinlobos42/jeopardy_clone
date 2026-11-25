@@ -102,10 +102,10 @@ export function ClueUpload({
   );
 }
 
-const ROWS: { key: keyof GameSettings; label: string; hint: string }[] = [
-  { key: "buzzSeconds", label: "Time to buzz", hint: "Then buzzers lock" },
-  { key: "answerSeconds", label: "Time to answer", hint: "After a buzz; plays a sound" },
-  { key: "finalSeconds", label: "Final round answer", hint: "Time to type an answer" },
+const ROWS: { key: keyof GameSettings; label: string }[] = [
+  { key: "buzzSeconds", label: "Time to buzz" },
+  { key: "answerSeconds", label: "Time to answer" },
+  { key: "finalSeconds", label: "Final round answer" },
 ];
 
 /** Host lobby section: the three timer lengths. */
@@ -124,7 +124,6 @@ export function TimerSettings({ settings, onChange }: { settings: GameSettings; 
           <div key={row.key} className={`flex min-h-[60px] items-center justify-between gap-3 ${i < ROWS.length - 1 ? "border-b border-line" : ""}`}>
             <span className="flex flex-col gap-0.5">
               <span className="text-base font-semibold">{row.label}</span>
-              <span className="text-[13px] text-muted">{row.hint}</span>
             </span>
             <span className="flex items-center gap-1.5">
               <button

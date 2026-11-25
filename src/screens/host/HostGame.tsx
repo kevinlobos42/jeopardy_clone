@@ -102,7 +102,7 @@ function ClueHeader({ current }: { current: CurrentClueView }) {
 function AnswerBox({ answer }: { answer: string | null }) {
   return (
     <div className="flex flex-col gap-1 rounded-2xl border border-dashed border-accent bg-surface px-5 py-3.5">
-      <span className="text-[13px] font-semibold uppercase tracking-[0.08em] text-accent">Answer · only you see this</span>
+      <span className="text-[13px] font-semibold uppercase tracking-[0.08em] text-accent">Answer</span>
       <span className="text-xl font-semibold">{answer ?? "?"}</span>
     </div>
   );
@@ -266,13 +266,10 @@ function AnsweringPanel({ lobby, send, clockOffset }: { lobby: LobbyView; send: 
         <span className="text-[15px] text-muted">{current.answerExpired || left === 0 ? "Answer time's up" : `Answer time: ${left}s`}</span>
         <ClueHeader current={current} />
       </div>
-      <div className="flex flex-col gap-1.5 rounded-2xl border-[3px] bg-surface px-5 py-4" style={{ borderColor: color }}>
-        <span className="text-[13px] font-semibold uppercase tracking-[0.08em] text-muted">Buzzed in</span>
-        <span className="inline-flex items-center gap-2.5 font-display text-[28px] font-bold">
-          <Dot color={color} size={14} />
-          {teamName(lobby, current.buzzedTeamId)}
-        </span>
-        {current.buzzedByName && <span className="text-[15px] text-muted">{current.buzzedByName} pressed first · any teammate can answer</span>}
+      <div className="flex flex-col gap-1.5 rounded-2xl px-5 py-4" style={{ background: color, color: "var(--color-ink)" }}>
+        <span className="text-[13px] font-semibold uppercase tracking-[0.08em] opacity-70">Buzzed in</span>
+        <span className="font-display text-[28px] font-bold">{teamName(lobby, current.buzzedTeamId)}</span>
+        {current.buzzedByName && <span className="text-[15px] opacity-80">{current.buzzedByName} pressed first · any teammate can answer</span>}
       </div>
       <AnswerBox answer={current.answer} />
       <div className="grid grid-cols-2 gap-3">
