@@ -35,8 +35,18 @@ export const SETTING_LIMITS = {
   finalSeconds: { min: 10, max: 300 },
 } as const;
 
-/** Final-round wagers are capped at this for every team. */
-export const FINAL_WAGER_MAX = 1000;
+/** Teams with less than this (but not negative) can still wager up to it. */
+export const FINAL_WAGER_FLOOR = 1000;
+
+/**
+ * The most a team can wager in the final round:
+ * - negative score: enough to get back to 0 (score -400 → up to 400)
+ * - 0 to 999: up to 1,000
+ * - 1,000 or more: up to their whole score
+ */
+export function maxFinalWager(score: number): number {
+  return score < 0 ? -score : Math.max(score, FINAL_WAGER_FLOOR);
+}
 
 /** Where one clue lives in the clue file. */
 export interface CluePosition {
@@ -51,6 +61,12 @@ export function clueKey(p: CluePosition): string {
 }
 
 // ---------- What clients receive ----------
+
+/** A clue's image / audio / video (same shape as in the clue file). */
+export interface MediaView {
+  type: "image" | "audio" | "video";
+  src: string;
+}
 
 export type CellState = "open" | "used" | "missing";
 
@@ -78,6 +94,11 @@ export interface CurrentClueView {
   question: string;
   /** Only the host gets this before the reveal; everyone gets it during reveal. */
   answer: string | null;
+  questionMedia: MediaView | null;
+  /** Same visibility as `answer`. */
+  answerMedia: MediaView | null;
+  /** True while the clue's audio/video plays on the display; buzzers open when it ends. */
+  waitingForMedia: boolean;
   /** Team currently answering (phase "answering"), or null. */
   buzzedTeamId: string | null;
   /** Name of the person who pressed first. */
@@ -98,6 +119,8 @@ export interface FinalTeamView {
   teamId: string;
   /** Has this team locked in a wager? */
   wagered: boolean;
+  /** The most this team may wager (from its current score). */
+  maxWager: number;
   /** The wager amount, when this client may see it (host, own team, or after judging). */
   wager: number | null;
   /** Has this team sent an answer? */
@@ -114,6 +137,11 @@ export interface FinalView {
   question: string | null;
   /** Shown to the host always; to everyone at game over. */
   answer: string | null;
+  questionMedia: MediaView | null;
+  /** Same visibility as `answer`. */
+  answerMedia: MediaView | null;
+  /** True while the final clue's audio/video plays; the timer starts when it ends. */
+  waitingForMedia: boolean;
   deadline: number | null;
   expired: boolean;
   teams: FinalTeamView[];
@@ -125,6 +153,8 @@ export interface CluesSummary {
   finalTopic: string;
   /** Clues skipped because their question or answer is empty, e.g. "Round 2 · Wordplay, row 2". */
   skipped: string[];
+  /** Every media file in the clue file, so the host's phone can check they load. */
+  media: { where: string; type: MediaView["type"]; src: string }[];
 }
 
 export interface GameView {

@@ -23,6 +23,10 @@ export function useRoom() {
   const [lobby, setLobby] = useState<LobbyView | null>(null);
   const [error, setError] = useState<RoomError | null>(null);
   const [busy, setBusy] = useState(false);
+  /** Problems with the last clue file the host uploaded (host only). */
+  const [clueErrors, setClueErrors] = useState<string[] | null>(null);
+  /** serverTime - localTime, in ms. Add it to Date.now() to get the server's "now". */
+  const [clockOffset, setClockOffset] = useState(0);
 
   const socketRef = useRef<PartySocket | null>(null);
   // Name waiting to be sent as `join` once the socket opens.
@@ -58,7 +62,13 @@ export function useRoom() {
           setBusy(false);
           break;
         case "lobby":
+          // How far the server's clock is from ours, so countdowns match the server.
+          setClockOffset(message.lobby.game.serverNow - Date.now());
           setLobby(message.lobby);
+          setBusy(false);
+          break;
+        case "clueFileErrors":
+          setClueErrors(message.errors);
           setBusy(false);
           break;
         case "error":
@@ -83,6 +93,7 @@ export function useRoom() {
 
   const send = useCallback((message: ClientMessage) => {
     setError(null);
+    if (message.type === "loadClues") setClueErrors(null);
     socketRef.current?.send(encode(message));
   }, []);
 
@@ -129,7 +140,20 @@ export function useRoom() {
   /** True while we have a saved session but haven't received the lobby yet. */
   const reconnecting = code !== null && lobby === null && loadSession()?.code === code;
 
-  return { code, lobby, error, busy, reconnecting, send, joinRoom, hostRoom, leave, clearError: () => setError(null) };
+  return {
+    code,
+    lobby,
+    error,
+    busy,
+    reconnecting,
+    clueErrors,
+    clockOffset,
+    send,
+    joinRoom,
+    hostRoom,
+    leave,
+    clearError: () => setError(null),
+  };
 }
 
 export type Room = ReturnType<typeof useRoom>;

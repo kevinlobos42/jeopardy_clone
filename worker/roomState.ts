@@ -60,6 +60,8 @@ export type CurrentClue = {
     buzzExpired: boolean
     /** Set once the answer timer has run out (sound played). */
     answerExpired: boolean
+    /** True while the clue's audio/video plays; buzzDeadline is null until it ends. */
+    waitingForMedia: boolean
 }
 
 /** Everything about the final round. Lookups are by team id. */
@@ -71,6 +73,8 @@ export type FinalState = {
     /** When the final answer timer ends (ms timestamp), or null if not started. */
     deadline: number | null
     expired: boolean
+    /** True while the final clue's audio/video plays; deadline is null until it ends. */
+    waitingForMedia: boolean
     /** The host's ruling for each team: true = correct, false = wrong. Missing = not judged yet. */
     judged: Record<string, boolean>
 }
@@ -100,7 +104,7 @@ export type GameState = {
 }
 
 export function emptyFinalState(): FinalState {
-    return { wagers: {}, answers: {}, deadline: null, expired: false, judged: {} }
+    return { wagers: {}, answers: {}, deadline: null, expired: false, waitingForMedia: false, judged: {} }
 }
 
 export function emptyRoomState(): RoomState{

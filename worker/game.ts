@@ -11,6 +11,7 @@ import {
   type CurrentClueView,
   type FinalView,
   type GameView,
+  maxFinalWager,
 } from "../shared/game.ts";
 import type { GameState, Person, RoomState } from "./roomState.ts";
 
@@ -54,17 +55,23 @@ export function lowestScoringTeam(state: RoomState): string | null {
 /** Short description of the uploaded file for the host's setup screen. */
 export function summarizeClues(file: ClueFile): CluesSummary {
   const skipped: string[] = [];
+  const media: CluesSummary["media"] = [];
   const rounds = file.boards.map((board) => {
     let clues = 0;
     board.columns.forEach((col) =>
       col.questions.forEach((q, row) => {
         if (isPlayable(q)) clues++;
         else skipped.push(`${board.name} · ${col.topic}, row ${row + 1}`);
+        const where = `${board.name} · ${col.topic} ${q.value}`;
+        if (q.questionMedia) media.push({ where: `${where} (question)`, ...q.questionMedia });
+        if (q.answerMedia) media.push({ where: `${where} (answer)`, ...q.answerMedia });
       }),
     );
     return { name: board.name, columns: board.columns.length, clues };
   });
-  return { title: file.title, rounds, finalTopic: file.final.topic, skipped };
+  if (file.final.questionMedia) media.push({ where: "Final (question)", ...file.final.questionMedia });
+  if (file.final.answerMedia) media.push({ where: "Final (answer)", ...file.final.answerMedia });
+  return { title: file.title, rounds, finalTopic: file.final.topic, skipped, media };
 }
 
 /**
@@ -123,12 +130,16 @@ function buildCurrentView(state: RoomState, isHost: boolean): CurrentClueView | 
   const clue = clueAt(game.clues, c.position);
   if (!clue) return null;
   const key = clueKey(c.position);
+  const showAnswer = isHost || game.phase === "reveal";
   return {
     position: c.position,
     topic: topicAt(game.clues, c.position),
     value: clue.value,
     question: clue.question,
-    answer: isHost || game.phase === "reveal" ? clue.answer : null,
+    answer: showAnswer ? clue.answer : null,
+    questionMedia: clue.questionMedia ?? null,
+    answerMedia: showAnswer ? (clue.answerMedia ?? null) : null,
+    waitingForMedia: c.waitingForMedia,
     buzzedTeamId: c.buzzedTeamId,
     buzzedByName: c.buzzedPersonId ? (state.people[c.buzzedPersonId]?.name ?? null) : null,
     lockedOutTeamIds: c.lockedOutTeamIds,
@@ -149,10 +160,16 @@ function buildFinalView(state: RoomState, viewer: Person): FinalView | null {
   if (!game.clues || !FINAL_PHASES.has(game.phase)) return null;
   const isHost = viewer.role === "host";
   const f = game.final;
+  const fc = game.clues.final;
+  const showQuestion = game.phase !== "finalWager" || isHost;
+  const showAnswer = isHost || game.phase === "gameOver";
   return {
-    topic: game.clues.final.topic,
-    question: game.phase === "finalWager" ? null : game.clues.final.question,
-    answer: isHost || game.phase === "gameOver" ? game.clues.final.answer : null,
+    topic: fc.topic,
+    question: game.phase === "finalWager" ? null : fc.question,
+    answer: showAnswer ? fc.answer : null,
+    questionMedia: showQuestion ? (fc.questionMedia ?? null) : null,
+    answerMedia: showAnswer ? (fc.answerMedia ?? null) : null,
+    waitingForMedia: f.waitingForMedia,
     deadline: f.deadline,
     expired: f.expired,
     teams: Object.values(state.teams).map((team) => {
@@ -162,6 +179,7 @@ function buildFinalView(state: RoomState, viewer: Person): FinalView | null {
       return {
         teamId: team.id,
         wagered: team.id in f.wagers,
+        maxWager: maxFinalWager(scoreOf(game, team.id)),
         wager: canSee ? (f.wagers[team.id] ?? null) : null,
         answered: (f.answers[team.id] ?? "").trim() !== "",
         answer: canSee ? (f.answers[team.id] ?? null) : null,

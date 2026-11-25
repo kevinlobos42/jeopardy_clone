@@ -9,11 +9,29 @@ import { z } from "zod";
 
 export const CLUE_FILE_VERSION = 1;
 
+/**
+ * An image, audio or video file attached to a clue.
+ * `src` is either a file in public/media/ ("/media/photo.jpg") or a full
+ * https:// link to the file itself (not to a page that shows it).
+ */
+export const MediaSchema = z.object({
+  type: z.enum(["image", "audio", "video"]),
+  src: z
+    .string()
+    .trim()
+    .min(1, "A media file needs a src")
+    .refine((s) => s.startsWith("/") || /^https?:\/\//.test(s), "src must start with / (a file in public) or http(s)://"),
+});
+
 const ClueSchema = z.object({
   question: z.string(),
   answer: z.string(),
   value: z.number().int().positive(),
   dailyDouble: z.boolean().optional(),
+  /** Shown/played with the clue. */
+  questionMedia: MediaSchema.optional(),
+  /** Shown/played on the reveal. */
+  answerMedia: MediaSchema.optional(),
 });
 
 const ColumnSchema = z.object({
@@ -30,6 +48,8 @@ const FinalSchema = z.object({
   topic: z.string().trim().min(1, "The final needs a topic"),
   question: z.string().trim().min(1, "The final needs a question"),
   answer: z.string().trim().min(1, "The final needs an answer"),
+  questionMedia: MediaSchema.optional(),
+  answerMedia: MediaSchema.optional(),
 });
 
 export const ClueFileSchema = z
@@ -53,6 +73,12 @@ export const ClueFileSchema = z
 
 export type ClueFile = z.infer<typeof ClueFileSchema>;
 export type Clue = z.infer<typeof ClueSchema>;
+export type Media = z.infer<typeof MediaSchema>;
+
+/** Audio and video make the game wait for them before the timer starts. */
+export function isTimedMedia(media: Media | undefined): boolean {
+  return media?.type === "audio" || media?.type === "video";
+}
 
 /** A clue counts as missing (skipped in play) if its question or answer is empty. */
 export function isPlayable(clue: Clue): boolean {

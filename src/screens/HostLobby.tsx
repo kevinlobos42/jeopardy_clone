@@ -1,21 +1,37 @@
 import { useState } from "react";
 import { TEAM_NAME_MAX, type LobbyView } from "../../shared/types.ts";
+import type { GameSettings } from "../../shared/game.ts";
 import { Button, Dot, ErrorText, playerCountLabel, teamColor } from "../ui/kit.tsx";
+import { ClueUpload, TimerSettings } from "./HostSetup.tsx";
 
 export function HostLobby({
   lobby,
   onCreateTeam,
   onLeave,
+  onLoadClues,
+  onSettings,
+  onStart,
+  clueErrors,
   error,
 }: {
   lobby: LobbyView;
   onCreateTeam: (name: string) => void;
   onLeave: () => void;
+  onLoadClues: (text: string) => void;
+  onSettings: (settings: GameSettings) => void;
+  onStart: () => void;
+  clueErrors: string[] | null;
   error: string | null;
 }) {
   const [newTeam, setNewTeam] = useState("");
   const [copied, setCopied] = useState(false);
   const unassigned = lobby.players.filter((p) => p.teamId === null);
+  const game = lobby.game;
+  const startBlocker = !game.cluesLoaded
+    ? "Upload a clue file to start."
+    : lobby.teams.length === 0
+      ? "Create at least one team to start."
+      : null;
 
   async function copyCode() {
     try {
@@ -57,7 +73,10 @@ export function HostLobby({
       </header>
 
       <div className="flex flex-1 flex-col gap-3.5 overflow-y-auto px-6 py-5">
-        <h2 className="m-0 font-display text-[22px] font-bold">Teams</h2>
+        <ClueUpload game={game} errors={clueErrors} onLoad={onLoadClues} />
+        <TimerSettings settings={game.settings} onChange={onSettings} />
+
+        <h2 className="m-0 mt-2 font-display text-[22px] font-bold">Teams</h2>
 
         {lobby.teams.length === 0 && <p className="m-0 text-muted">No teams yet. Create one, or let players make their own.</p>}
 
@@ -122,8 +141,10 @@ export function HostLobby({
       </div>
 
       <footer className="flex flex-col gap-2 border-t border-line px-6 pb-6 pt-4">
-        <Button disabled>Start game</Button>
-        <p className="m-0 text-center text-[13px] text-muted">Starting the game comes with the game logic.</p>
+        <Button disabled={startBlocker !== null} onClick={onStart}>
+          Start game
+        </Button>
+        <p className="m-0 text-center text-[13px] text-muted">{startBlocker ?? "Everyone can still join after you start."}</p>
         <Button variant="ghost" className="h-11 text-[15px]" onClick={onLeave}>
           Leave room
         </Button>

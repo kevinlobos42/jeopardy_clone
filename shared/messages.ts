@@ -7,7 +7,7 @@
  */
 import { z } from "zod";
 import { NAME_MAX, TEAM_NAME_MAX } from "./types.ts";
-import { FINAL_WAGER_MAX, SETTING_LIMITS } from "./game.ts";
+import { SETTING_LIMITS } from "./game.ts";
 import type { LobbyView } from "./types.ts";
 
 // ---------- Client → server ----------
@@ -63,11 +63,14 @@ export const ClientMessageSchema = z.discriminatedUnion("type", [
   /** Host, finalReveal: show final standings. */
   z.object({ type: z.literal("finishGame") }),
 
+  /** Display (when the clue's audio/video ends) or host (manual): open buzzers / start the final timer. */
+  z.object({ type: z.literal("mediaFinished") }),
+
   // ----- Game (players) -----
   /** Player on a team, clue phase: buzz in. */
   z.object({ type: z.literal("buzz") }),
-  /** Player on a team, finalWager: set the team's wager. */
-  z.object({ type: z.literal("finalWager"), amount: z.number().int().min(0).max(FINAL_WAGER_MAX) }),
+  /** Player on a team, finalWager: set the team's wager (limit depends on score, see maxFinalWager). */
+  z.object({ type: z.literal("finalWager"), amount: z.number().int().min(0).max(10_000_000) }),
   /** Player on a team, finalClue: set the team's answer. */
   z.object({ type: z.literal("finalAnswer"), text: z.string().max(200) }),
 

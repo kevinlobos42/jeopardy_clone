@@ -17,8 +17,8 @@ import {
 } from "../shared/messages.ts";
 import { nameKey, type CreateRoomResponse, type LobbyView, type TeamView } from "../shared/types.ts";
 import { generateRoomCode } from "../shared/roomCode.ts";
-import { parseClueFile } from "../shared/clueFile.ts";
-import { clueKey, type Phase, type SoundKind } from "../shared/game.ts";
+import { isTimedMedia, parseClueFile } from "../shared/clueFile.ts";
+import { clueKey, maxFinalWager, type Phase, type SoundKind } from "../shared/game.ts";
 import { buildGameView, clueAt, isOpen, lowestScoringTeam, nextDeadline, roundHasOpenClues } from "./game.ts";
 
 /**
@@ -102,6 +102,9 @@ export class Room extends Server<Env> {
         break;
       case "finishGame":
         await this.finishGame(connection);
+        break;
+      case "mediaFinished":
+        await this.mediaFinished(connection);
         break;
 
       // Game: players
@@ -426,15 +429,18 @@ export class Room extends Server<Env> {
       this.sendError(connection, "CLUE_NOT_AVAILABLE", "That clue isn't available");
       return;
     }
+    // Audio/video clues: buzzers stay closed until the display says it finished playing.
+    const waitForMedia = isTimedMedia(clueAt(game.clues, position)?.questionMedia);
     game.current = {
       position,
       buzzedTeamId: null,
       buzzedPersonId: null,
       lockedOutTeamIds: [],
-      buzzDeadline: Date.now() + game.settings.buzzSeconds * 1000,
+      buzzDeadline: waitForMedia ? null : Date.now() + game.settings.buzzSeconds * 1000,
       answerDeadline: null,
       buzzExpired: false,
       answerExpired: false,
+      waitingForMedia: waitForMedia,
     };
     game.lastClueValue = clueAt(game.clues, position)?.value ?? game.lastClueValue;
     game.phase = "clue";
@@ -449,6 +455,10 @@ export class Room extends Server<Env> {
     const now = Date.now();
     // Every check and change below happens before the first `await`, so two
     // buzzes can't both get through: the first one moves the phase on.
+    if (current?.waitingForMedia) {
+      this.sendError(connection, "NOT_ALLOWED", "Wait for the clue to finish");
+      return;
+    }
     if (!current || current.buzzExpired || current.buzzDeadline === null || now >= current.buzzDeadline) {
       this.sendError(connection, "NOT_ALLOWED", "Buzzers are closed");
       return;
@@ -560,14 +570,27 @@ export class Room extends Server<Env> {
   async finalWager(connection: Connection<ConnectionData>, message: ExtractedMessage<"finalWager">) {
     const person = this.requireTeamPlayer(connection);
     if (!person || !this.requirePhase(connection, "finalWager")) return;
-    this.state.game.final.wagers[person.teamId] = message.amount;
+    const game = this.state.game;
+    const max = maxFinalWager(game.scores[person.teamId] ?? 0);
+    if (message.amount > max) {
+      this.sendError(connection, "NOT_ALLOWED", `Your team can wager up to ${max.toLocaleString("en-US")}`);
+      return;
+    }
+    game.final.wagers[person.teamId] = message.amount;
     await this.commit();
   }
 
   async showFinalClue(connection: Connection<ConnectionData>) {
     if (!this.requireHost(connection) || !this.requirePhase(connection, "finalWager")) return;
     const game = this.state.game;
-    game.final.deadline = Date.now() + game.settings.finalSeconds * 1000;
+    // Scores may have been adjusted since a team wagered: keep every wager within its limit.
+    for (const [teamId, wager] of Object.entries(game.final.wagers)) {
+      game.final.wagers[teamId] = Math.min(wager, maxFinalWager(game.scores[teamId] ?? 0));
+    }
+    // Audio/video final clue: the timer starts when it finishes playing.
+    const waitForMedia = isTimedMedia(game.clues?.final.questionMedia);
+    game.final.waitingForMedia = waitForMedia;
+    game.final.deadline = waitForMedia ? null : Date.now() + game.settings.finalSeconds * 1000;
     game.final.expired = false;
     game.phase = "finalClue";
     await this.commit();
@@ -614,6 +637,30 @@ export class Room extends Server<Env> {
   async finishGame(connection: Connection<ConnectionData>) {
     if (!this.requireHost(connection) || !this.requirePhase(connection, "finalReveal")) return;
     this.state.game.phase = "gameOver";
+    await this.commit();
+  }
+
+  /**
+   * The clue's audio/video finished on the display (or the host pressed
+   * "open buzzers now"): open buzzers, or start the final timer.
+   * Only the first report counts, so several displays are fine.
+   */
+  async mediaFinished(connection: Connection<ConnectionData>) {
+    const person = this.whoIs(connection);
+    if (!person || (person.role !== "host" && person.role !== "display")) {
+      this.sendError(connection, "NOT_ALLOWED", "Only the host or a display can do that");
+      return;
+    }
+    const game = this.state.game;
+    if (game.phase === "clue" && game.current?.waitingForMedia) {
+      game.current.waitingForMedia = false;
+      game.current.buzzDeadline = Date.now() + game.settings.buzzSeconds * 1000;
+    } else if (game.phase === "finalClue" && game.final.waitingForMedia) {
+      game.final.waitingForMedia = false;
+      game.final.deadline = Date.now() + game.settings.finalSeconds * 1000;
+    } else {
+      return; // already started: ignore quietly
+    }
     await this.commit();
   }
 

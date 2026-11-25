@@ -96,3 +96,38 @@ export function memberNames(lobby: LobbyView, team: TeamView): string[] {
 export function playerCountLabel(n: number): string {
   return n === 1 ? "1 player" : `${n} players`;
 }
+
+/** 1200 → "1,200", -400 → "−400" (real minus sign). */
+export function formatScore(n: number): string {
+  const abs = Math.abs(n).toLocaleString("en-US");
+  return n < 0 ? `−${abs}` : abs;
+}
+
+export function teamName(lobby: LobbyView, teamId: string | null): string {
+  return lobby.teams.find((t) => t.id === teamId)?.name ?? "No team";
+}
+
+export function scoreOf(lobby: LobbyView, teamId: string): number {
+  return lobby.game.scores[teamId] ?? 0;
+}
+
+export interface Standing {
+  teamId: string;
+  name: string;
+  score: number;
+  /** 1 = first. Tied scores share a place. */
+  place: number;
+}
+
+/** Teams sorted by score, highest first, with shared places for ties. */
+export function standings(lobby: LobbyView): Standing[] {
+  const sorted = lobby.teams
+    .map((t) => ({ teamId: t.id, name: t.name, score: scoreOf(lobby, t.id) }))
+    .sort((a, b) => b.score - a.score);
+  return sorted.map((s) => ({ ...s, place: sorted.findIndex((o) => o.score === s.score) + 1 }));
+}
+
+export function ordinal(n: number): string {
+  const suffix = n % 100 >= 11 && n % 100 <= 13 ? "th" : ({ 1: "st", 2: "nd", 3: "rd" } as Record<number, string>)[n % 10] ?? "th";
+  return `${n}${suffix}`;
+}
